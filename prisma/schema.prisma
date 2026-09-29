@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ProductKind {
+  STATIONERY
+  UNIFORM
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum StockTransactionType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+model User {
+  id                String             @id @default(uuid())
+  name              String
+  email             String             @unique
+  passwordHash      String
+  role              Role
+  status            UserStatus         @default(ACTIVE)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  orders            Order[]
+  stockTransactions StockTransaction[]
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  imageUrl    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+}
+
+model Product {
+  id                String             @id @default(uuid())
+  sku               String             @unique
+  name              String
+  description       String?
+  imageUrl          String?
+  categoryId        String
+  category          Category           @relation(fields: [categoryId], references: [id])
+  kind              ProductKind        @default(STATIONERY)
+  price             Decimal            @db.Decimal(10, 2)
+  stockQuantity     Int                @default(0)
+  minimumStock      Int                @default(0)
+  status            ProductStatus      @default(ACTIVE)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  sizes             ProductSize[]
+  orderItems        OrderItem[]
+  stockTransactions StockTransaction[]
+
+  @@index([name])
+  @@index([categoryId])
+}
+
+model ProductSize {
+  id                String             @id @default(uuid())
+  productId         String
+  product           Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size              String
+  price             Decimal            @db.Decimal(10, 2)
+  stockQuantity     Int                @default(0)
+  minimumStock      Int                @default(0)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  orderItems        OrderItem[]
+  stockTransactions StockTransaction[]
+
+  @@unique([productId, size])
+  @@index([productId])
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+
+  @@index([name])
+  @@index([phone])
+  @@index([email])
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  orderNumber String      @unique
+  customerId  String
+  customer    Customer    @relation(fields: [customerId], references: [id])
+  createdById String
+  createdBy   User        @relation(fields: [createdById], references: [id])
+  status      OrderStatus @default(PENDING)
+  subtotal    Decimal     @db.Decimal(12, 2)
+  total       Decimal     @db.Decimal(12, 2)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  items       OrderItem[]
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([customerId])
+  @@index([createdById])
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product      @relation(fields: [productId], references: [id])
+  productSizeId String?
+  productSize   ProductSize? @relation(fields: [productSizeId], references: [id])
+  sizeLabel     String?
+  quantity      Int
+  unitPrice     Decimal      @db.Decimal(10, 2)
+  total         Decimal      @db.Decimal(12, 2)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model StockTransaction {
+  id            String               @id @default(uuid())
+  productId     String
+  product       Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productSizeId String?
+  productSize   ProductSize?         @relation(fields: [productSizeId], references: [id])
+  sizeLabel     String?
+  userId        String
+  user          User                 @relation(fields: [userId], references: [id])
+  type          StockTransactionType
+  quantity      Int
+  previousStock Int
+  newStock      Int
+  reason        String
+  createdAt     DateTime             @default(now())
+
+  @@index([productId])
+  @@index([userId])
+  @@index([createdAt])
+}

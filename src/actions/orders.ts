@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { authorize } from "@/lib/auth/guard";
 import { toErrorMessage } from "@/lib/errors";
-import { cancelOrder, createOrder } from "@/lib/services/orders";
+import { cancelOrder, completeOrder, createOrder } from "@/lib/services/orders";
 import type { ActionResult } from "@/types/action";
 import { fieldErrors, orderSchema } from "@/lib/validations";
 
@@ -26,6 +26,17 @@ export async function saveOrder(input: unknown): Promise<ActionResult<{ orderNum
     const order = await createOrder(parsed.data, user.id);
     refreshOrders();
     return { ok: true, message: `Created ${order.orderNumber}.`, data: { orderNumber: order.orderNumber } };
+  } catch (error) {
+    return { ok: false, message: toErrorMessage(error) };
+  }
+}
+
+export async function completeOrderAction(orderId: string): Promise<ActionResult> {
+  try {
+    await authorize("ordersComplete");
+    await completeOrder(orderId);
+    refreshOrders();
+    return { ok: true, message: "Order completed." };
   } catch (error) {
     return { ok: false, message: toErrorMessage(error) };
   }

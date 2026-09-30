@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { cancelOrderAction } from "@/actions/orders";
+import { cancelOrderAction, completeOrderAction } from "@/actions/orders";
 import { ConfirmButton } from "@/components/confirm-button";
 import { PageHeader } from "@/components/page-header";
 import { PrintButton } from "@/components/print-button";
@@ -23,6 +23,15 @@ export default async function OrderDetailPage({
     <article className="print-sheet">
       <PageHeader title={order.orderNumber} description={formatDateTime(order.createdAt)}>
         <PrintButton label="Print order" />
+        {can(user.role, "ordersComplete") && order.status === "PENDING" ? (
+          <ConfirmButton
+            label="Complete order"
+            title={`Complete ${order.orderNumber}?`}
+            description="Stock and the amount due will not change."
+            confirmLabel="Complete order"
+            onConfirm={completeOrderAction.bind(null, order.id)}
+          />
+        ) : null}
         {can(user.role, "ordersCancel") && order.status !== "CANCELLED" ? (
           <ConfirmButton
             label="Cancel order"

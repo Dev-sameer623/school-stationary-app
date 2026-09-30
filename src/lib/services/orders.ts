@@ -323,3 +323,15 @@ export async function cancelOrder(orderId: string, userId: string) {
     });
   });
 }
+
+export async function completeOrder(orderId: string) {
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  if (!order) throw new AppError("Order not found.");
+  if (order.status !== "PENDING") {
+    throw new AppError("Only a pending order can be completed.");
+  }
+  return prisma.order.update({
+    where: { id: order.id },
+    data: { status: "COMPLETED" },
+  });
+}

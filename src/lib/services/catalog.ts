@@ -114,7 +114,7 @@ export async function listProducts(filters: {
   const [items, total] = await Promise.all([
     prisma.product.findMany({
       where,
-      include: { category: true },
+      include: { category: true, sizes: { select: { price: true, discountPercent: true } } },
       orderBy: { name: "asc" },
       skip: (filters.page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
@@ -175,6 +175,7 @@ export async function createProduct(input: ProductInput, userId: string) {
           categoryId: input.categoryId,
           kind: input.kind,
           price: rolled?.price ?? input.price,
+          discountPercent: uniform ? 0 : input.discountPercent,
           stockQuantity: rolled?.stockQuantity ?? input.stockQuantity,
           minimumStock: rolled?.minimumStock ?? input.minimumStock,
           status: input.status,
@@ -188,6 +189,7 @@ export async function createProduct(input: ProductInput, userId: string) {
               productId: product.id,
               size: size.size,
               price: size.price,
+              discountPercent: size.discountPercent,
               stockQuantity: size.stockQuantity,
               minimumStock: size.minimumStock,
             },
@@ -248,6 +250,7 @@ export async function updateProduct(id: string, input: ProductUpdateInput, userI
             categoryId: input.categoryId,
             kind: "STATIONERY",
             price: input.price,
+            discountPercent: input.discountPercent,
             minimumStock: input.minimumStock,
             status: input.status,
           },
@@ -259,7 +262,12 @@ export async function updateProduct(id: string, input: ProductUpdateInput, userI
         if (size.id && existing.has(size.id)) {
           await tx.productSize.update({
             where: { id: size.id },
-            data: { size: size.size, price: size.price, minimumStock: size.minimumStock },
+            data: {
+            size: size.size,
+            price: size.price,
+            discountPercent: size.discountPercent,
+            minimumStock: size.minimumStock,
+          },
           });
         } else {
           const created = await tx.productSize.create({
@@ -267,6 +275,7 @@ export async function updateProduct(id: string, input: ProductUpdateInput, userI
               productId: id,
               size: size.size,
               price: size.price,
+              discountPercent: size.discountPercent,
               stockQuantity: size.stockQuantity,
               minimumStock: size.minimumStock,
             },
@@ -306,6 +315,7 @@ export async function updateProduct(id: string, input: ProductUpdateInput, userI
           categoryId: input.categoryId,
           kind: "UNIFORM",
           price: rolled.price,
+          discountPercent: 0,
           stockQuantity: rolled.stockQuantity,
           minimumStock: rolled.minimumStock,
           status: input.status,

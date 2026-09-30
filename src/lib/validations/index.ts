@@ -14,6 +14,11 @@ const sizeSchema = z.object({
   id: z.string().uuid().optional().or(z.literal("")),
   size: z.string().trim().min(1, "Size is required.").max(20),
   price: z.coerce.number().min(0, "Price must be 0 or more."),
+  discountPercent: z.coerce
+    .number()
+    .int("Discount must be a whole number.")
+    .min(0, "Discount must be 0 or more.")
+    .max(100, "Discount cannot be more than 100."),
   stockQuantity: z.coerce.number().int().min(0, "Stock must be 0 or more."),
   minimumStock: z.coerce.number().int().min(0, "Minimum stock must be 0 or more."),
 });
@@ -26,6 +31,11 @@ export const productSchema = z
     categoryId: z.string().uuid("Choose a category."),
     kind: z.enum(["STATIONERY", "UNIFORM"]),
     price: z.coerce.number().min(0, "Price must be 0 or more."),
+    discountPercent: z.coerce
+      .number()
+      .int("Discount must be a whole number.")
+      .min(0, "Discount must be 0 or more.")
+      .max(100, "Discount cannot be more than 100."),
     stockQuantity: z.coerce.number().int().min(0, "Stock must be 0 or more."),
     minimumStock: z.coerce.number().int().min(0, "Minimum stock must be 0 or more."),
     status: z.enum(["ACTIVE", "INACTIVE"]),
@@ -107,8 +117,31 @@ export const stockChangeSchema = z
     }
   });
 
+export const couponSchema = z
+  .object({
+    code: z.string().trim().min(1, "Code is required.").max(40),
+    percent: z.coerce
+      .number()
+      .int("Percentage must be a whole number.")
+      .min(1, "Percentage must be at least 1.")
+      .max(100, "Percentage cannot be more than 100."),
+    status: z.enum(["ACTIVE", "INACTIVE"]),
+    startsAt: z.string().optional().or(z.literal("")),
+    endsAt: z.string().optional().or(z.literal("")),
+  })
+  .superRefine((value, ctx) => {
+    if (value.startsAt && value.endsAt && value.endsAt < value.startsAt) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["endsAt"],
+        message: "End date must be on or after the start date.",
+      });
+    }
+  });
+
 export const orderSchema = z.object({
   customerId: z.string().uuid("Choose a customer."),
+  couponCode: z.string().trim().max(40).optional().or(z.literal("")),
   items: z
     .array(
       z.object({
@@ -155,3 +188,4 @@ export type UserInput = z.infer<typeof userSchema>;
 export type UserUpdateInput = z.infer<typeof userUpdateSchema>;
 export type StockChangeInput = z.infer<typeof stockChangeSchema>;
 export type OrderInput = z.infer<typeof orderSchema>;
+export type CouponInput = z.infer<typeof couponSchema>;

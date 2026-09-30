@@ -39,6 +39,11 @@ enum StockTransactionType {
   ADJUSTMENT
 }
 
+enum CouponStatus {
+  ACTIVE
+  INACTIVE
+}
+
 model User {
   id                String             @id @default(uuid())
   name              String
@@ -72,6 +77,7 @@ model Product {
   category          Category           @relation(fields: [categoryId], references: [id])
   kind              ProductKind        @default(STATIONERY)
   price             Decimal            @db.Decimal(10, 2)
+  discountPercent   Int                @default(0)
   stockQuantity     Int                @default(0)
   minimumStock      Int                @default(0)
   status            ProductStatus      @default(ACTIVE)
@@ -91,6 +97,7 @@ model ProductSize {
   product           Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
   size              String
   price             Decimal            @db.Decimal(10, 2)
+  discountPercent   Int                @default(0)
   stockQuantity     Int                @default(0)
   minimumStock      Int                @default(0)
   createdAt         DateTime           @default(now())
@@ -100,6 +107,18 @@ model ProductSize {
 
   @@unique([productId, size])
   @@index([productId])
+}
+
+model Coupon {
+  id        String       @id @default(uuid())
+  code      String       @unique
+  percent   Int
+  status    CouponStatus @default(ACTIVE)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  orders    Order[]
 }
 
 model Customer {
@@ -124,12 +143,18 @@ model Order {
   customer    Customer    @relation(fields: [customerId], references: [id])
   createdById String
   createdBy   User        @relation(fields: [createdById], references: [id])
-  status      OrderStatus @default(PENDING)
-  subtotal    Decimal     @db.Decimal(12, 2)
-  total       Decimal     @db.Decimal(12, 2)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  items       OrderItem[]
+  status             OrderStatus @default(PENDING)
+  subtotal           Decimal     @db.Decimal(12, 2)
+  discountedSubtotal Decimal     @default(0) @db.Decimal(12, 2)
+  couponId           String?
+  coupon             Coupon?     @relation(fields: [couponId], references: [id])
+  couponCode         String?
+  couponPercent      Int         @default(0)
+  couponAmount       Decimal     @default(0) @db.Decimal(12, 2)
+  total              Decimal     @db.Decimal(12, 2)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  items              OrderItem[]
 
   @@index([createdAt])
   @@index([status])
@@ -146,9 +171,11 @@ model OrderItem {
   productSizeId String?
   productSize   ProductSize? @relation(fields: [productSizeId], references: [id])
   sizeLabel     String?
-  quantity      Int
-  unitPrice     Decimal      @db.Decimal(10, 2)
-  total         Decimal      @db.Decimal(12, 2)
+  quantity            Int
+  unitPrice           Decimal @db.Decimal(10, 2)
+  discountPercent     Int     @default(0)
+  discountedUnitPrice Decimal @default(0) @db.Decimal(10, 2)
+  total               Decimal @db.Decimal(12, 2)
 
   @@index([orderId])
   @@index([productId])

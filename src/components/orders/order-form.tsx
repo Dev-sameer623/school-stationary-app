@@ -8,6 +8,7 @@ import { saveOrder } from "@/actions/orders";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label, Select } from "@/components/ui/field";
 import { formatInr } from "@/lib/format";
+import { priceAfterPercent } from "@/lib/pricing";
 import { orderSchema } from "@/lib/validations";
 import type { z } from "zod";
 
@@ -19,33 +20,63 @@ type SaleProduct = {
   sku: string;
   kind: "STATIONERY" | "UNIFORM";
   price: number;
+  discountPercent: number;
   stockQuantity: number;
-  sizes: Array<{ id: string; size: string; price: number; stockQuantity: number }>;
+  sizes: Array<{ id: string; size: string; price: number; discountPercent: number; stockQuantity: number }>;
+};
+
+type CouponPreview = {
+  code: string;
+  percent: number;
+  startsAt: string | null;
+  endsAt: string | null;
 };
 
 export function OrderForm({
   customers,
   products,
+  coupons,
 }: {
   customers: Array<{ id: string; name: string }>;
   products: SaleProduct[];
+  coupons: CouponPreview[];
 }) {
   const router = useRouter();
   const form = useForm<Values>({
     resolver: zodResolver(orderSchema) as Resolver<Values>,
     defaultValues: {
       customerId: customers[0]?.id ?? "",
+      couponCode: "",
       items: [{ productId: products[0]?.id ?? "", productSizeId: "", quantity: 1 }],
     },
   });
   const items = useFieldArray({ control: form.control, name: "items" });
   const watched = useWatch({ control: form.control, name: "items" });
-  const total = (watched ?? []).reduce((sum, item) => {
+  const couponCode = useWatch({ control: form.control, name: "couponCode" });
+  const lines = (watched ?? []).map((item) => {
     const product = products.find((entry) => entry.id === item.productId);
     const size = product?.sizes.find((entry) => entry.id === item.productSizeId);
-    const price = product?.kind === "UNIFORM" ? (size?.price ?? 0) : (product?.price ?? 0);
-    return sum + price * Number(item.quantity || 0);
-  }, 0);
+    const listUnit = product?.kind === "UNIFORM" ? (size?.price ?? 0) : (product?.price ?? 0);
+    const percent = product?.kind === "UNIFORM" ? (size?.discountPercent ?? 0) : (product?.discountPercent ?? 0);
+    const quantity = Number(item.quantity || 0);
+    const discountedUnit = priceAfterPercent(listUnit, percent);
+    return {
+      list: Math.round(listUnit * quantity * 100) / 100,
+      discounted: Math.round(discountedUnit * quantity * 100) / 100,
+    };
+  });
+  const listTotal = lines.reduce((sum, line) => sum + line.list, 0);
+  const discountedSubtotal = lines.reduce((sum, line) => sum + line.discounted, 0);
+  const typedCode = couponCode?.trim().toUpperCase() ?? "";
+  const now = new Date();
+  const coupon = coupons.find((entry) => entry.code === typedCode);
+  const couponReady =
+    !typedCode ||
+    (coupon &&
+      (!coupon.startsAt || now >= new Date(coupon.startsAt)) &&
+      (!coupon.endsAt || now <= new Date(coupon.endsAt)));
+  const couponPercent = typedCode && coupon && couponReady ? coupon.percent : 0;
+  const amountDue = priceAfterPercent(discountedSubtotal, couponPercent);
 
   async function onSubmit(values: Values) {
     for (const item of values.items) {
@@ -106,7 +137,7 @@ export function OrderForm({
                     <option value="">Choose</option>
                     {selected.sizes.map((size) => (
                       <option key={size.id} value={size.id}>
-                        {size.size} — {formatInr(size.price)} ({size.stockQuantity})
+                        {size.size} — {formatInr(priceAfterPercent(size.price, size.discountPercent))} ({size.stockQuantity})
                       </option>
                     ))}
                   </Select>
@@ -139,7 +170,19 @@ export function OrderForm({
         </Button>
         <FieldError message={form.formState.errors.items?.message} />
       </div>
-      <p className="font-serif text-lg">Total {formatInr(total)}</p>
+      <div className="grid gap-1.5">
+        <Label htmlFor="couponCode">Coupon code</Label>
+        <Input id="couponCode" {...form.register("couponCode")} placeholder="Optional" />
+        {typedCode && !couponReady ? <FieldError message="This coupon cannot be used." /> : null}
+      </div>
+      <div className="max-w-xs space-y-1 text-sm">
+        <p className="flex justify-between"><span>List total</span><span>{formatInr(listTotal)}</span></p>
+        <p className="flex justify-between"><span>After item discounts</span><span>{formatInr(discountedSubtotal)}</span></p>
+        {couponPercent > 0 ? (
+          <p className="flex justify-between"><span>Coupon {coupon?.code} ({couponPercent}%)</span><span>{formatInr(discountedSubtotal - amountDue)}</span></p>
+        ) : null}
+        <p className="flex justify-between font-serif text-lg"><span>Amount due</span><span>{formatInr(amountDue)}</span></p>
+      </div>
       <div className="flex gap-2">
         <Button type="submit" disabled={form.formState.isSubmitting || products.length === 0 || customers.length === 0}>
           Create order

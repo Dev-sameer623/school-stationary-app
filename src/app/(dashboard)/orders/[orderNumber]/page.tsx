@@ -45,8 +45,10 @@ export default async function OrderDetailPage({
               <th className="px-4 py-3">Product</th>
               <th className="px-4 py-3">Size</th>
               <th className="px-4 py-3">Quantity</th>
-              <th className="px-4 py-3">Unit price</th>
-              <th className="px-4 py-3">Total</th>
+              <th className="px-4 py-3">List price</th>
+              <th className="px-4 py-3">Discount</th>
+              <th className="px-4 py-3">Price after discount</th>
+              <th className="px-4 py-3">Line total</th>
             </tr>
           </thead>
           <tbody>
@@ -58,6 +60,8 @@ export default async function OrderDetailPage({
                 </td>
                 <td className="px-4 py-3">{item.quantity}</td>
                 <td className="px-4 py-3">{formatInr(money(item.unitPrice))}</td>
+                <td className="px-4 py-3">{item.discountPercent}%</td>
+                <td className="px-4 py-3">{formatInr(money(item.discountedUnitPrice))}</td>
                 <td className="px-4 py-3">{formatInr(money(item.total))}</td>
               </tr>
             ))}
@@ -65,8 +69,16 @@ export default async function OrderDetailPage({
         </table>
       </div>
       <div className="mt-4 max-w-xs space-y-1 text-sm">
-        <p className="flex justify-between"><span>Subtotal</span><span>{formatInr(money(order.subtotal))}</span></p>
-        <p className="flex justify-between font-semibold"><span>Total</span><span>{formatInr(money(order.total))}</span></p>
+        <p className="flex justify-between"><span>List total</span><span>{formatInr(money(order.subtotal))}</span></p>
+        <p className="flex justify-between"><span>Item discounts</span><span>{formatInr(money(order.subtotal) - money(order.discountedSubtotal))}</span></p>
+        <p className="flex justify-between"><span>After item discounts</span><span>{formatInr(money(order.discountedSubtotal))}</span></p>
+        {order.couponPercent > 0 ? (
+          <p className="flex justify-between">
+            <span>Coupon {order.couponCode} ({order.couponPercent}%)</span>
+            <span>{formatInr(money(order.couponAmount))}</span>
+          </p>
+        ) : null}
+        <p className="flex justify-between font-semibold"><span>Amount due</span><span>{formatInr(money(order.total))}</span></p>
       </div>
     </article>
   );

@@ -4,6 +4,7 @@ import { StockBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState, Pagination } from "@/components/ui/feedback";
 import { Input } from "@/components/ui/field";
+import { UrlFilters } from "@/components/url-filters";
 import { requireUser } from "@/lib/auth/session";
 import { can } from "@/lib/permissions";
 import { formatDateTime, stockStatus } from "@/lib/format";
@@ -41,10 +42,9 @@ export default async function StockPage({
           </>
         ) : null}
       </PageHeader>
-      <form className="mb-4 flex gap-2" method="get">
+      <UrlFilters className="mb-4 max-w-sm">
         <Input name="q" defaultValue={query} placeholder="Search product or SKU" aria-label="Search stock" />
-        <Button type="submit" variant="outline">Search</Button>
-      </form>
+      </UrlFilters>
       {stock.items.length === 0 ? (
         <EmptyState title="No products found." description="Products appear here after they are added." />
       ) : (

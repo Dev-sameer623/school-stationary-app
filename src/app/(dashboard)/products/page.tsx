@@ -5,12 +5,36 @@ import { StockBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState, Pagination } from "@/components/ui/feedback";
 import { Input, Select } from "@/components/ui/field";
+import { UrlFilters } from "@/components/url-filters";
 import { requireUser } from "@/lib/auth/session";
 import { can } from "@/lib/permissions";
 import { formatInr, money, stockStatus, type StockStatus } from "@/lib/format";
+import { priceAfterPercent } from "@/lib/pricing";
 import { prisma } from "@/lib/db/prisma";
 import { listProducts } from "@/lib/services/catalog";
 import { pageNumber, readParam } from "@/lib/utils";
+
+function discountLabel(product: {
+  kind: string;
+  discountPercent: number;
+  sizes: Array<{ discountPercent: number }>;
+}) {
+  if (product.kind !== "UNIFORM" || product.sizes.length === 0) return `${product.discountPercent}%`;
+  const percents = [...new Set(product.sizes.map((size) => size.discountPercent))];
+  return percents.length === 1 ? `${percents[0]}%` : "By size";
+}
+
+function discountedPrice(product: {
+  kind: string;
+  price: { toString(): string };
+  discountPercent: number;
+  sizes: Array<{ price: { toString(): string }; discountPercent: number }>;
+}) {
+  if (product.kind === "UNIFORM" && product.sizes.length > 0) {
+    return Math.min(...product.sizes.map((size) => priceAfterPercent(money(size.price), size.discountPercent)));
+  }
+  return priceAfterPercent(money(product.price), product.discountPercent);
+}
 
 export default async function ProductsPage({
   searchParams,
@@ -50,7 +74,7 @@ export default async function ProductsPage({
           </Button>
         ) : null}
       </PageHeader>
-      <form className="mb-4 grid gap-3 sm:grid-cols-4" method="get">
+      <UrlFilters className="mb-4 grid gap-3 sm:grid-cols-3">
         <Input name="q" defaultValue={query} placeholder="Search name or SKU" aria-label="Search products" />
         <Select name="category" defaultValue={categoryId} aria-label="Category">
           <option value="">All categories</option>
@@ -66,10 +90,7 @@ export default async function ProductsPage({
           <option value="LOW_STOCK">Low stock</option>
           <option value="OUT_OF_STOCK">Out of stock</option>
         </Select>
-        <Button type="submit" variant="outline">
-          Filter
-        </Button>
-      </form>
+      </UrlFilters>
       {products.items.length === 0 ? (
         <EmptyState
           title="No products found."
@@ -84,7 +105,9 @@ export default async function ProductsPage({
               <tr>
                 <th className="px-4 py-3">SKU</th>
                 <th className="px-4 py-3">Product</th>
-                <th className="px-4 py-3">Price</th>
+                <th className="px-4 py-3">List price</th>
+                <th className="px-4 py-3">Discount</th>
+                <th className="px-4 py-3">Price after discount</th>
                 <th className="px-4 py-3">Stock</th>
                 <th className="px-4 py-3">Status</th>
               </tr>
@@ -107,6 +130,11 @@ export default async function ProductsPage({
                   <td className="px-4 py-3">
                     {product.kind === "UNIFORM" ? "from " : ""}
                     {formatInr(money(product.price))}
+                  </td>
+                  <td className="px-4 py-3">{discountLabel(product)}</td>
+                  <td className="px-4 py-3">
+                    {product.kind === "UNIFORM" ? "from " : ""}
+                    {formatInr(discountedPrice(product))}
                   </td>
                   <td className="px-4 py-3">{product.stockQuantity}</td>
                   <td className="px-4 py-3">

@@ -3,8 +3,8 @@ import { endOfDay, startOfDay } from "date-fns";
 import { PageHeader } from "@/components/page-header";
 import { PrintButton } from "@/components/print-button";
 import { OrderBadge, StockBadge } from "@/components/status-badge";
-import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
+import { UrlFilters } from "@/components/url-filters";
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { formatDate, formatInr, money, stockStatus } from "@/lib/format";
@@ -50,17 +50,25 @@ export default async function ReportsPage({
           ["sales", "Sales"],
           ["stock", "Stock"],
           ["movement", "Stock movement"],
-        ].map(([value, label]) => (
-          <Link
-            key={value}
-            href={`/reports?tab=${value}`}
-            className={`rounded-md px-3 py-2 text-sm ${tab === value ? "bg-primary text-primary-foreground" : "bg-card border border-border"}`}
-          >
-            {label}
-          </Link>
-        ))}
+        ].map(([value, label]) => {
+          const next = new URLSearchParams();
+          for (const key of ["from", "to", "product", "category", "user", "status"]) {
+            const valueForKey = readParam(params[key]);
+            if (valueForKey) next.set(key, valueForKey);
+          }
+          next.set("tab", value);
+          return (
+            <Link
+              key={value}
+              href={`/reports?${next.toString()}`}
+              className={`rounded-md px-3 py-2 text-sm ${tab === value ? "bg-primary text-primary-foreground" : "bg-card border border-border"}`}
+            >
+              {label}
+            </Link>
+          );
+        })}
       </div>
-      <form className="no-print mb-4 grid gap-3 md:grid-cols-3 xl:grid-cols-6" method="get">
+      <UrlFilters className="no-print mb-4 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         <input type="hidden" name="tab" value={tab} />
         <Input name="from" type="date" defaultValue={from} aria-label="Start date" />
         <Input name="to" type="date" defaultValue={to} aria-label="End date" />
@@ -88,8 +96,7 @@ export default async function ReportsPage({
           <option value="COMPLETED">Completed</option>
           <option value="CANCELLED">Cancelled</option>
         </Select>
-        <Button type="submit" variant="outline">Apply filters</Button>
-      </form>
+      </UrlFilters>
       {tab === "stock" ? <StockTable filters={filters} /> : null}
       {tab === "movement" ? <MovementTable filters={filters} /> : null}
       {tab !== "stock" && tab !== "movement" ? <SalesTable filters={filters} /> : null}
@@ -109,7 +116,8 @@ async function SalesTable({ filters }: { filters: Parameters<typeof salesReport>
             <th className="px-4 py-3">Date</th>
             <th className="px-4 py-3">Customer</th>
             <th className="px-4 py-3">Items</th>
-            <th className="px-4 py-3">Total</th>
+            <th className="px-4 py-3">List total</th>
+            <th className="px-4 py-3">Amount due</th>
             <th className="px-4 py-3">Created by</th>
             <th className="px-4 py-3">Status</th>
           </tr>
@@ -125,6 +133,7 @@ async function SalesTable({ filters }: { filters: Parameters<typeof salesReport>
                   .map((item) => `${item.product.name}${item.sizeLabel ? ` size ${item.sizeLabel}` : ""} × ${item.quantity}`)
                   .join(", ")}
               </td>
+              <td className="px-4 py-3">{formatInr(money(order.subtotal))}</td>
               <td className="px-4 py-3">{formatInr(money(order.total))}</td>
               <td className="px-4 py-3">{order.createdBy.name}</td>
               <td className="px-4 py-3"><OrderBadge status={order.status} /></td>

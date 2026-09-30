@@ -7,6 +7,7 @@ export const permissions = {
   categoriesManage: ["ADMIN"],
   stockManage: ["ADMIN", "MANAGER"],
   ordersCreate: ["ADMIN", "MANAGER"],
+  couponsManage: ["ADMIN", "MANAGER"],
   ordersCancel: ["ADMIN"],
   customersManage: ["ADMIN", "MANAGER"],
   reportsView: ["ADMIN", "MANAGER"],

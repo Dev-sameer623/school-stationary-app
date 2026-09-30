@@ -7,13 +7,14 @@ import { money } from "@/lib/format";
 
 export default async function NewOrderPage() {
   await requireUser();
-  const [customers, products] = await Promise.all([
+  const [customers, products, coupons] = await Promise.all([
     prisma.customer.findMany({ orderBy: { name: "asc" } }),
     prisma.product.findMany({
       where: { status: "ACTIVE" },
       include: { sizes: { orderBy: { size: "asc" } } },
       orderBy: { name: "asc" },
     }),
+    prisma.coupon.findMany({ where: { status: "ACTIVE" }, orderBy: { code: "asc" } }),
   ]);
 
   return (
@@ -33,13 +34,21 @@ export default async function NewOrderPage() {
             sku: product.sku,
             kind: product.kind,
             price: money(product.price),
+            discountPercent: product.discountPercent,
             stockQuantity: product.stockQuantity,
             sizes: product.sizes.map((size) => ({
               id: size.id,
               size: size.size,
               price: money(size.price),
+              discountPercent: size.discountPercent,
               stockQuantity: size.stockQuantity,
             })),
+          }))}
+          coupons={coupons.map((coupon) => ({
+            code: coupon.code,
+            percent: coupon.percent,
+            startsAt: coupon.startsAt?.toISOString() ?? null,
+            endsAt: coupon.endsAt?.toISOString() ?? null,
           }))}
         />
       )}

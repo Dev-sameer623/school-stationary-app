@@ -57,6 +57,10 @@ export async function getOrder(orderNumber: string) {
   });
 }
 
+function applyPercent(amount: Prisma.Decimal, percent: number) {
+  return amount.mul(100 - percent).div(100).toDecimalPlaces(2);
+}
+
 function mergeItems(items: OrderInput["items"]) {
   const merged = new Map<string, OrderInput["items"][number]>();
   for (const item of items) {
@@ -83,12 +87,13 @@ export async function createOrder(input: OrderInput, userId: string) {
         id: string;
         stockQuantity: number;
         price: Prisma.Decimal;
+        discountPercent: number;
         status: string;
         name: string;
         kind: string;
       }>
     >`
-      SELECT id, "stockQuantity", price, status, name, kind
+      SELECT id, "stockQuantity", price, "discountPercent", status, name, kind
       FROM "Product"
       WHERE id IN (${Prisma.join(productIds)})
       FOR UPDATE
@@ -108,10 +113,11 @@ export async function createOrder(input: OrderInput, userId: string) {
               productId: string;
               size: string;
               price: Prisma.Decimal;
+              discountPercent: number;
               stockQuantity: number;
             }>
           >`
-            SELECT id, "productId", size, price, "stockQuantity"
+            SELECT id, "productId", size, price, "discountPercent", "stockQuantity"
             FROM "ProductSize"
             WHERE id IN (${Prisma.join(sizeIds)})
             FOR UPDATE
@@ -139,33 +145,57 @@ export async function createOrder(input: OrderInput, userId: string) {
       }
     }
 
+    const code = input.couponCode?.trim();
+    const coupon = code
+      ? await tx.coupon.findUnique({ where: { code: code.toUpperCase() } })
+      : null;
+    if (code) {
+      if (!coupon) throw new AppError("Coupon not found.");
+      if (coupon.status !== "ACTIVE") throw new AppError("This coupon is not active.");
+      const now = new Date();
+      if (coupon.startsAt && now < coupon.startsAt) throw new AppError("This coupon is not valid yet.");
+      if (coupon.endsAt && now > coupon.endsAt) throw new AppError("This coupon has expired.");
+    }
+
     const count = await tx.order.count();
     const orderNumber = `ORD-${1001 + count}`;
-    let subtotal = new Prisma.Decimal(0);
+    let listTotal = new Prisma.Decimal(0);
+    let discountedSubtotal = new Prisma.Decimal(0);
     const itemData = lines.map((line) => {
       const product = byId.get(line.productId)!;
       const size = line.productSizeId ? sizeById.get(line.productSizeId) : undefined;
       const unitPrice = new Prisma.Decimal(size ? size.price : product.price);
-      const total = unitPrice.mul(line.quantity);
-      subtotal = subtotal.add(total);
+      const discountPercent = size ? size.discountPercent : product.discountPercent;
+      const discountedUnitPrice = applyPercent(unitPrice, discountPercent);
+      const total = discountedUnitPrice.mul(line.quantity).toDecimalPlaces(2);
+      listTotal = listTotal.add(unitPrice.mul(line.quantity).toDecimalPlaces(2));
+      discountedSubtotal = discountedSubtotal.add(total);
       return {
         productId: line.productId,
         productSizeId: size?.id,
         sizeLabel: size?.size,
         quantity: line.quantity,
         unitPrice,
+        discountPercent,
+        discountedUnitPrice,
         total,
       };
     });
 
+    const payable = coupon ? applyPercent(discountedSubtotal, coupon.percent) : discountedSubtotal;
     const order = await tx.order.create({
       data: {
         orderNumber,
         customerId: customer.id,
         createdById: userId,
         status: "PENDING",
-        subtotal,
-        total: subtotal,
+        subtotal: listTotal,
+        discountedSubtotal,
+        couponId: coupon?.id,
+        couponCode: coupon?.code,
+        couponPercent: coupon?.percent ?? 0,
+        couponAmount: discountedSubtotal.minus(payable),
+        total: payable,
         items: { create: itemData },
       },
     });

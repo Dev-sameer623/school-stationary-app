@@ -2,8 +2,8 @@ import { CatalogImage } from "@/components/catalog-image";
 import { CategoryForm, DeleteCategoryButton } from "@/components/categories/category-manager";
 import { PageHeader } from "@/components/page-header";
 import { AccessDenied, EmptyState, Pagination } from "@/components/ui/feedback";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
+import { UrlFilters } from "@/components/url-filters";
 import { requirePermission } from "@/lib/auth/session";
 import { listCategories } from "@/lib/services/catalog";
 import { pageNumber, readParam } from "@/lib/utils";
@@ -25,12 +25,9 @@ export default async function CategoriesPage({
       <PageHeader title="Categories" description="Group products. A category with products cannot be deleted.">
         <CategoryForm />
       </PageHeader>
-      <form className="mb-4 flex gap-2" method="get">
+      <UrlFilters className="mb-4 max-w-sm">
         <Input name="q" defaultValue={query} placeholder="Search categories" aria-label="Search categories" />
-        <Button type="submit" variant="outline">
-          Search
-        </Button>
-      </form>
+      </UrlFilters>
       {categories.items.length === 0 ? (
         <EmptyState title="No categories found." description="Add a category such as Pens or Notebooks." />
       ) : (

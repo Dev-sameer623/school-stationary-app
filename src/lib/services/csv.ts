@@ -2,6 +2,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { AppError } from "@/lib/errors";
 import { formatDate, money, stockStatus, stockStatusLabel } from "@/lib/format";
+import { priceAfterPercent } from "@/lib/pricing";
 
 const PRODUCT_COLUMNS = [
   "sku",
@@ -214,21 +215,31 @@ export async function importProductCsv(text: string, userId: string) {
 export async function exportCsv(resource: string) {
   if (resource === "products") {
     const products = await prisma.product.findMany({
-      include: { category: true },
+      include: { category: true, sizes: true },
       orderBy: { sku: "asc" },
     });
     return toCsv(
-      ["sku", "name", "description", "price", "stockQuantity", "minimumStock", "category", "status"],
-      products.map((product) => [
-        product.sku,
-        product.name,
-        product.description ?? "",
-        money(product.price),
-        product.stockQuantity,
-        product.minimumStock,
-        product.category.name,
-        stockStatusLabel(stockStatus(product.stockQuantity, product.minimumStock)),
-      ]),
+      ["sku", "name", "description", "price", "discountPercent", "discountedPrice", "stockQuantity", "minimumStock", "category", "status"],
+      products.map((product) => {
+        const discounted =
+          product.kind === "UNIFORM" && product.sizes.length > 0
+            ? Math.min(
+                ...product.sizes.map((size) => priceAfterPercent(money(size.price), size.discountPercent)),
+              )
+            : priceAfterPercent(money(product.price), product.discountPercent);
+        return [
+          product.sku,
+          product.name,
+          product.description ?? "",
+          money(product.price),
+          product.discountPercent,
+          discounted,
+          product.stockQuantity,
+          product.minimumStock,
+          product.category.name,
+          stockStatusLabel(stockStatus(product.stockQuantity, product.minimumStock)),
+        ];
+      }),
     );
   }
 
@@ -251,7 +262,7 @@ export async function exportCsv(resource: string) {
       orderBy: { createdAt: "desc" },
     });
     return toCsv(
-      ["orderNumber", "date", "customer", "lines", "total", "createdBy", "status"],
+      ["orderNumber", "date", "customer", "lines", "listTotal", "couponCode", "couponPercent", "total", "createdBy", "status"],
       orders.map((order) => [
         order.orderNumber,
         formatDate(order.createdAt),
@@ -259,6 +270,9 @@ export async function exportCsv(resource: string) {
         order.items
           .map((item) => `${item.product.name}${item.sizeLabel ? ` size ${item.sizeLabel}` : ""} x ${item.quantity}`)
           .join("; "),
+        money(order.subtotal),
+        order.couponCode ?? "",
+        order.couponPercent,
         money(order.total),
         order.createdBy.name,
         order.status,

@@ -30,7 +30,8 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
                 <tr>
                   <th className="px-4 py-3">Order</th>
                   <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Total</th>
+                  <th className="px-4 py-3">List total</th>
+                  <th className="px-4 py-3">Amount due</th>
                   <th className="px-4 py-3">Status</th>
                 </tr>
               </thead>
@@ -43,6 +44,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
                       </Link>
                     </td>
                     <td className="px-4 py-3">{formatDate(order.createdAt)}</td>
+                    <td className="px-4 py-3">{formatInr(money(order.subtotal))}</td>
                     <td className="px-4 py-3">{formatInr(money(order.total))}</td>
                     <td className="px-4 py-3"><OrderBadge status={order.status} /></td>
                   </tr>

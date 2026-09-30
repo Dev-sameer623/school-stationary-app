@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth/session";
 import { can } from "@/lib/permissions";
 import { formatDateTime, formatInr, money, stockStatus } from "@/lib/format";
+import { priceAfterPercent } from "@/lib/pricing";
 import { getProduct } from "@/lib/services/catalog";
 
 export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
@@ -51,6 +52,18 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           <dt className="text-sm text-muted-foreground">{product.kind === "UNIFORM" ? "From" : "Price"}</dt>
           <dd>{formatInr(money(product.price))}</dd>
         </div>
+        {product.kind === "STATIONERY" ? (
+          <>
+            <div>
+              <dt className="text-sm text-muted-foreground">Discount</dt>
+              <dd>{product.discountPercent}%</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-muted-foreground">Price after discount</dt>
+              <dd>{formatInr(priceAfterPercent(money(product.price), product.discountPercent))}</dd>
+            </div>
+          </>
+        ) : null}
         <div>
           <dt className="text-sm text-muted-foreground">Stock</dt>
           <dd>{product.stockQuantity}</dd>
@@ -86,7 +99,9 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
             <thead className="border-b border-border bg-muted text-muted-foreground">
               <tr>
                 <th className="px-4 py-3">Size</th>
-                <th className="px-4 py-3">Price</th>
+                <th className="px-4 py-3">List price</th>
+                <th className="px-4 py-3">Discount</th>
+                <th className="px-4 py-3">Price after discount</th>
                 <th className="px-4 py-3">Stock</th>
                 <th className="px-4 py-3">Minimum</th>
                 <th className="px-4 py-3">Status</th>
@@ -99,6 +114,8 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                     <span className="rounded-full border border-border px-2 py-0.5 text-xs">Size {size.size}</span>
                   </td>
                   <td className="px-4 py-3">{formatInr(money(size.price))}</td>
+                  <td className="px-4 py-3">{size.discountPercent}%</td>
+                  <td className="px-4 py-3">{formatInr(priceAfterPercent(money(size.price), size.discountPercent))}</td>
                   <td className="px-4 py-3">{size.stockQuantity}</td>
                   <td className="px-4 py-3">{size.minimumStock}</td>
                   <td className="px-4 py-3">

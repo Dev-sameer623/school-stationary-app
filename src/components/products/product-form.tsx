@@ -27,6 +27,7 @@ export function ProductForm({
     categoryId: string;
     kind: "STATIONERY" | "UNIFORM";
     price: number;
+    discountPercent: number;
     minimumStock: number;
     status: "ACTIVE" | "INACTIVE";
     stockQuantity: number;
@@ -35,6 +36,7 @@ export function ProductForm({
       id: string;
       size: string;
       price: number;
+      discountPercent: number;
       stockQuantity: number;
       minimumStock: number;
     }>;
@@ -51,6 +53,7 @@ export function ProductForm({
       categoryId: product?.categoryId ?? categories[0]?.id ?? "",
       kind: product?.kind ?? "STATIONERY",
       price: product?.price ?? 0,
+      discountPercent: product?.discountPercent ?? 0,
       stockQuantity: product?.stockQuantity ?? 0,
       minimumStock: product?.minimumStock ?? 0,
       status: product?.status ?? "ACTIVE",
@@ -59,6 +62,7 @@ export function ProductForm({
           id: size.id,
           size: size.size,
           price: size.price,
+          discountPercent: size.discountPercent,
           stockQuantity: size.stockQuantity,
           minimumStock: size.minimumStock,
         })) ?? [],
@@ -171,7 +175,7 @@ export function ProductForm({
             <p className="text-xs text-muted-foreground">Each size has its own price and stock. Existing stock is changed from the stock page.</p>
           </div>
           {sizes.fields.map((field, index) => (
-            <div key={field.id} className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-[6rem_1fr_1fr_1fr_auto]">
+            <div key={field.id} className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-2 lg:grid-cols-6">
               <input type="hidden" {...form.register(`sizes.${index}.id`)} />
               <div className="grid gap-1.5">
                 <Label htmlFor={`size-${index}`}>Size</Label>
@@ -182,6 +186,11 @@ export function ProductForm({
                 <Label htmlFor={`size-price-${index}`}>Price (₹)</Label>
                 <Input id={`size-price-${index}`} type="number" min="0" step="0.01" {...form.register(`sizes.${index}.price`)} />
                 <FieldError message={form.formState.errors.sizes?.[index]?.price?.message} />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor={`size-discount-${index}`}>Discount %</Label>
+                <Input id={`size-discount-${index}`} type="number" min="0" max="100" step="1" {...form.register(`sizes.${index}.discountPercent`)} />
+                <FieldError message={form.formState.errors.sizes?.[index]?.discountPercent?.message} />
               </div>
               {field.id && product?.sizes.some((size) => size.id === form.getValues(`sizes.${index}.id`)) ? (
                 <div className="grid gap-1.5">
@@ -208,18 +217,23 @@ export function ProductForm({
           <Button
             type="button"
             variant="outline"
-            onClick={() => sizes.append({ id: "", size: "", price: 0, stockQuantity: 0, minimumStock: 0 })}
+            onClick={() => sizes.append({ id: "", size: "", price: 0, discountPercent: 0, stockQuantity: 0, minimumStock: 0 })}
           >
             Add size
           </Button>
           <FieldError message={form.formState.errors.sizes?.message ?? form.formState.errors.sizes?.root?.message} />
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="grid gap-1.5">
             <Label htmlFor="price">Price (₹)</Label>
             <Input id="price" type="number" min="0" step="0.01" {...form.register("price")} />
             <FieldError message={form.formState.errors.price?.message} />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="discountPercent">Discount %</Label>
+            <Input id="discountPercent" type="number" min="0" max="100" step="1" {...form.register("discountPercent")} />
+            <FieldError message={form.formState.errors.discountPercent?.message} />
           </div>
           {product ? (
             <div className="grid gap-1.5">

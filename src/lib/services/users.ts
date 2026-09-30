@@ -26,8 +26,19 @@ async function keepAnActiveAdmin(
   }
 }
 
-export async function listUsers() {
+export async function listUsers(filters?: { query?: string; status?: "ACTIVE" | "INACTIVE" | "ALL" }) {
+  const query = filters?.query?.trim();
+  const where: Prisma.UserWhereInput = {};
+  if (query) {
+    where.OR = [
+      { name: { contains: query, mode: "insensitive" } },
+      { email: { contains: query, mode: "insensitive" } },
+    ];
+  }
+  if (filters?.status && filters.status !== "ALL") where.status = filters.status;
+
   return prisma.user.findMany({
+    where,
     orderBy: { name: "asc" },
     select: {
       id: true,

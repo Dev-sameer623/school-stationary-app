@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { EmptyState, Pagination } from "@/components/ui/feedback";
 import { Input } from "@/components/ui/field";
+import { UrlFilters } from "@/components/url-filters";
 import { requireUser } from "@/lib/auth/session";
 import { can } from "@/lib/permissions";
 import { listCustomers } from "@/lib/services/customers";
@@ -32,10 +33,9 @@ export default async function CustomersPage({
           <Link href="/customers/new">Add customer</Link>
         </Button>
       </PageHeader>
-      <form className="mb-4 flex gap-2" method="get">
+      <UrlFilters className="mb-4 max-w-sm">
         <Input name="q" defaultValue={query} placeholder="Name, phone, or email" aria-label="Search customers" />
-        <Button type="submit" variant="outline">Search</Button>
-      </form>
+      </UrlFilters>
       {customers.items.length === 0 ? (
         <EmptyState
           title="No customers found."

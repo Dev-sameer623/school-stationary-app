@@ -4,6 +4,7 @@ import { OrderBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState, Pagination } from "@/components/ui/feedback";
 import { Input, Select } from "@/components/ui/field";
+import { UrlFilters } from "@/components/url-filters";
 import { requireUser } from "@/lib/auth/session";
 import { can } from "@/lib/permissions";
 import { formatDate, formatInr, money } from "@/lib/format";
@@ -47,7 +48,7 @@ export default async function OrdersPage({
           </Button>
         ) : null}
       </PageHeader>
-      <form className="mb-4 grid gap-3 md:grid-cols-5" method="get">
+      <UrlFilters className="mb-4 grid gap-3 md:grid-cols-4">
         <Input name="q" defaultValue={query} placeholder="Order number or customer" aria-label="Search orders" />
         <Input name="from" type="date" defaultValue={from} aria-label="From date" />
         <Input name="to" type="date" defaultValue={to} aria-label="To date" />
@@ -57,8 +58,7 @@ export default async function OrdersPage({
           <option value="COMPLETED">Completed</option>
           <option value="CANCELLED">Cancelled</option>
         </Select>
-        <Button type="submit" variant="outline">Filter</Button>
-      </form>
+      </UrlFilters>
       {orders.items.length === 0 ? (
         <EmptyState
           title="No orders found."
@@ -75,7 +75,8 @@ export default async function OrdersPage({
                 <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Customer</th>
                 <th className="px-4 py-3">Items</th>
-                <th className="px-4 py-3">Total</th>
+                <th className="px-4 py-3">List total</th>
+                <th className="px-4 py-3">Amount due</th>
                 <th className="px-4 py-3">Status</th>
               </tr>
             </thead>
@@ -90,6 +91,7 @@ export default async function OrdersPage({
                   <td className="px-4 py-3">{formatDate(order.createdAt)}</td>
                   <td className="px-4 py-3">{order.customer.name}</td>
                   <td className="px-4 py-3">{order.items.reduce((sum, item) => sum + item.quantity, 0)}</td>
+                  <td className="px-4 py-3">{formatInr(money(order.subtotal))}</td>
                   <td className="px-4 py-3">{formatInr(money(order.total))}</td>
                   <td className="px-4 py-3"><OrderBadge status={order.status} /></td>
                 </tr>

@@ -17,7 +17,15 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
     <div className="grid gap-8 xl:grid-cols-[22rem_1fr]">
       <div>
         <PageHeader title={customer.name} description="Update contact details." />
-        <CustomerForm customer={customer} />
+        <CustomerForm
+          customer={{
+            id: customer.id,
+            name: customer.name,
+            phone: customer.phone,
+            email: customer.email,
+            address: customer.address,
+          }}
+        />
       </div>
       <div>
         <h2 className="mb-3 text-lg font-semibold">Orders</h2>

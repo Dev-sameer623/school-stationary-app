@@ -16,6 +16,10 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   title: "School Stationery Manager",
   description: "Manage school stationery products, stock, and orders.",
+  icons: {
+    icon: [{ url: "/stationery-emblem.jpg", type: "image/jpeg" }],
+    apple: [{ url: "/stationery-emblem.jpg", type: "image/jpeg" }],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

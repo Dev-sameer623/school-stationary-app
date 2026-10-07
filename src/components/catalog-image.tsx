@@ -5,10 +5,14 @@ export function CatalogImage({
   src,
   alt,
   className,
+  sizes = "256px",
+  preload = false,
 }: {
   src: string | null | undefined;
   alt: string;
   className?: string;
+  sizes?: string;
+  preload?: boolean;
 }) {
   if (!src) {
     return (
@@ -22,7 +26,7 @@ export function CatalogImage({
 
   return (
     <span className={cn("relative block overflow-hidden", className)}>
-      <Image src={src} alt={alt} fill className="object-cover" sizes="256px" />
+      <Image src={src} alt={alt} fill className="object-cover" sizes={sizes} preload={preload} />
     </span>
   );
 }

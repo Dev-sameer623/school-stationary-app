@@ -10,7 +10,7 @@ import {
   LogOut,
   Menu,
   Package,
-  Settings,
+  UserRound,
   Ticket,
   ShoppingCart,
   Tags,
@@ -32,7 +32,7 @@ const links = [
   { href: "/customers", label: "Customers", icon: Users, roles: ["ADMIN", "MANAGER"] },
   { href: "/reports", label: "Reports", icon: ChartColumn, roles: ["ADMIN", "MANAGER"] },
   { href: "/users", label: "Users", icon: Users, roles: ["ADMIN"] },
-  { href: "/settings", label: "Settings", icon: Settings, roles: ["ADMIN", "MANAGER"] },
+  { href: "/settings", label: "My profile", icon: UserRound, roles: ["ADMIN", "MANAGER"] },
 ] as const;
 
 export function AppShell({
@@ -112,10 +112,10 @@ export function AppShell({
             <Menu className="h-5 w-5" />
           </button>
           <div className="ml-auto flex items-center gap-3">
-            <div className="text-right">
+            <Link href="/settings" className="text-right">
               <p className="text-sm font-medium">{user.name}</p>
-              <p className="text-xs text-muted-foreground">{user.email}</p>
-            </div>
+              <p className="text-xs text-primary">My profile</p>
+            </Link>
             <RoleBadge role={user.role} />
           </div>
         </header>

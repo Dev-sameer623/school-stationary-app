@@ -141,7 +141,7 @@ export default async function StockPage({
                   <td className="px-4 py-3">{row.quantity}</td>
                   <td className="px-4 py-3">{row.previousStock} → {row.newStock}</td>
                   <td className="px-4 py-3">{row.reason}</td>
-                  <td className="px-4 py-3">{row.user.name}</td>
+                  <td className="px-4 py-3">{row.user?.name ?? "Online shop"}</td>
                 </tr>
               ))}
             </tbody>

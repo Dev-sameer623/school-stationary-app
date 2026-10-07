@@ -1,7 +1,15 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { AppError } from "@/lib/errors";
 import { PAGE_SIZE } from "@/lib/utils";
 import type { CustomerInput } from "@/lib/validations";
+
+function uniqueCustomer(error: unknown): never {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    throw new AppError("A customer with this email already exists.");
+  }
+  throw error;
+}
 
 export async function listCustomers(query: string, page: number) {
   const where: Prisma.CustomerWhereInput = query
@@ -41,24 +49,32 @@ export async function getCustomer(id: string) {
 }
 
 export async function createCustomer(input: CustomerInput) {
-  return prisma.customer.create({
-    data: {
-      name: input.name,
-      phone: input.phone || null,
-      email: input.email || null,
-      address: input.address || null,
-    },
-  });
+  try {
+    return await prisma.customer.create({
+      data: {
+        name: input.name,
+        phone: input.phone || null,
+        email: input.email?.toLowerCase() || null,
+        address: input.address || null,
+      },
+    });
+  } catch (error) {
+    uniqueCustomer(error);
+  }
 }
 
 export async function updateCustomer(id: string, input: CustomerInput) {
-  return prisma.customer.update({
-    where: { id },
-    data: {
-      name: input.name,
-      phone: input.phone || null,
-      email: input.email || null,
-      address: input.address || null,
-    },
-  });
+  try {
+    return await prisma.customer.update({
+      where: { id },
+      data: {
+        name: input.name,
+        phone: input.phone || null,
+        email: input.email?.toLowerCase() || null,
+        address: input.address || null,
+      },
+    });
+  } catch (error) {
+    uniqueCustomer(error);
+  }
 }

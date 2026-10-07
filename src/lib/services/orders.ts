@@ -46,6 +46,14 @@ export async function listOrders(filters: {
   return { items, total, pageCount: Math.max(1, Math.ceil(total / PAGE_SIZE)) };
 }
 
+export async function listCustomerOrders(customerId: string) {
+  return prisma.order.findMany({
+    where: { customerId },
+    include: { items: { include: { product: { select: { name: true } } } } },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
 export async function getOrder(orderNumber: string) {
   return prisma.order.findUnique({
     where: { orderNumber },
@@ -73,6 +81,21 @@ function mergeItems(items: OrderInput["items"]) {
 }
 
 export async function createOrder(input: OrderInput, userId: string) {
+  return createOrderRecord(input, { userId, source: "COUNTER", pickupNote: null });
+}
+
+export async function createOnlineOrder(input: OrderInput, pickupNote?: string | null) {
+  return createOrderRecord(input, {
+    userId: null,
+    source: "ONLINE",
+    pickupNote: pickupNote?.trim() || null,
+  });
+}
+
+async function createOrderRecord(
+  input: OrderInput,
+  actor: { userId: string | null; source: "COUNTER" | "ONLINE"; pickupNote: string | null },
+) {
   const lines = mergeItems(input.items);
 
   return prisma.$transaction(async (tx) => {
@@ -187,7 +210,9 @@ export async function createOrder(input: OrderInput, userId: string) {
       data: {
         orderNumber,
         customerId: customer.id,
-        createdById: userId,
+        createdById: actor.userId,
+        source: actor.source,
+        pickupNote: actor.pickupNote,
         status: "PENDING",
         subtotal: listTotal,
         discountedSubtotal,
@@ -199,6 +224,9 @@ export async function createOrder(input: OrderInput, userId: string) {
         items: { create: itemData },
       },
     });
+
+    const stockReason =
+      actor.source === "ONLINE" ? `Online order ${orderNumber}` : `Order ${orderNumber}`;
 
     for (const line of lines) {
       const product = byId.get(line.productId)!;
@@ -216,12 +244,12 @@ export async function createOrder(input: OrderInput, userId: string) {
             productId: product.id,
             productSizeId: size.id,
             sizeLabel: size.size,
-            userId,
+            userId: actor.userId,
             type: "OUT",
             quantity: line.quantity,
             previousStock: newStock + line.quantity,
             newStock,
-            reason: `Order ${orderNumber}`,
+            reason: stockReason,
           },
         });
       } else {
@@ -234,12 +262,12 @@ export async function createOrder(input: OrderInput, userId: string) {
         await tx.stockTransaction.create({
           data: {
             productId: product.id,
-            userId,
+            userId: actor.userId,
             type: "OUT",
             quantity: line.quantity,
             previousStock: newStock + line.quantity,
             newStock,
-            reason: `Order ${orderNumber}`,
+            reason: stockReason,
           },
         });
       }

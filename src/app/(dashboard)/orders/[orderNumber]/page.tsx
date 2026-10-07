@@ -44,7 +44,9 @@ export default async function OrderDetailPage({
       </PageHeader>
       <div className="mb-4 flex flex-wrap gap-6 text-sm">
         <p><span className="text-muted-foreground">Customer: </span>{order.customer.name}</p>
-        <p><span className="text-muted-foreground">Created by: </span>{order.createdBy.name}</p>
+        <p><span className="text-muted-foreground">Created by: </span>{order.createdBy?.name ?? "Online shop"}</p>
+        <p><span className="text-muted-foreground">Source: </span>{order.source === "ONLINE" ? "Online" : "Counter"}</p>
+        {order.pickupNote ? <p><span className="text-muted-foreground">Visit note: </span>{order.pickupNote}</p> : null}
         <OrderBadge status={order.status} />
       </div>
       <div className="overflow-x-auto rounded-xl border border-border bg-card">

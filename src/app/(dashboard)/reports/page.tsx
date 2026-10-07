@@ -135,7 +135,7 @@ async function SalesTable({ filters }: { filters: Parameters<typeof salesReport>
               </td>
               <td className="px-4 py-3">{formatInr(money(order.subtotal))}</td>
               <td className="px-4 py-3">{formatInr(money(order.total))}</td>
-              <td className="px-4 py-3">{order.createdBy.name}</td>
+              <td className="px-4 py-3">{order.createdBy?.name ?? "Online"}</td>
               <td className="px-4 py-3"><OrderBadge status={order.status} /></td>
             </tr>
           ))}
@@ -224,7 +224,7 @@ async function MovementTable({ filters }: { filters: Parameters<typeof movementR
               <td className="px-4 py-3">{row.previousStock}</td>
               <td className="px-4 py-3">{row.newStock}</td>
               <td className="px-4 py-3">{row.reason}</td>
-              <td className="px-4 py-3">{row.user.name}</td>
+              <td className="px-4 py-3">{row.user?.name ?? "Online shop"}</td>
             </tr>
           ))}
         </tbody>

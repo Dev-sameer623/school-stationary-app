@@ -62,6 +62,13 @@ export const productSchema = z
 
 export const productUpdateSchema = productSchema;
 
+export const customerSignupSchema = z.object({
+  name: z.string().trim().min(1, "Name is required.").max(120),
+  phone: z.string().trim().min(6, "Enter a phone number.").max(20),
+  email: z.string().trim().email("Enter a valid email address."),
+  password: z.string().min(8, "Password must be at least 8 characters."),
+});
+
 export const customerSchema = z.object({
   name: z.string().trim().min(1, "Name is required.").max(120),
   phone: z.string().trim().max(20).optional().or(z.literal("")),
@@ -139,21 +146,26 @@ export const couponSchema = z
     }
   });
 
+const orderItemList = z
+  .array(
+    z.object({
+      productId: z.string().uuid("Choose a product."),
+      productSizeId: z.string().uuid().optional().or(z.literal("")),
+      quantity: z.coerce.number().int("Quantity must be a whole number.").min(1, "Quantity must be at least 1."),
+    }),
+  )
+  .min(1, "Add at least one product.");
+
 export const orderSchema = z.object({
   customerId: z.string().uuid("Choose a customer."),
   couponCode: z.string().trim().max(40).optional().or(z.literal("")),
-  items: z
-    .array(
-      z.object({
-        productId: z.string().uuid("Choose a product."),
-        productSizeId: z.string().uuid().optional().or(z.literal("")),
-        quantity: z.coerce
-          .number()
-          .int("Quantity must be a whole number.")
-          .min(1, "Quantity must be at least 1."),
-      }),
-    )
-    .min(1, "Add at least one product."),
+  items: orderItemList,
+});
+
+export const onlineOrderSchema = z.object({
+  pickupNote: z.string().trim().max(300).optional().or(z.literal("")),
+  couponCode: z.string().trim().max(40).optional().or(z.literal("")),
+  items: orderItemList,
 });
 
 export const passwordSchema = z
@@ -184,6 +196,8 @@ export type ProductInput = z.infer<typeof productSchema>;
 export type ProductUpdateInput = z.infer<typeof productUpdateSchema>;
 export type CategoryInput = z.infer<typeof categorySchema>;
 export type CustomerInput = z.infer<typeof customerSchema>;
+export type CustomerSignupInput = z.infer<typeof customerSignupSchema>;
+export type OnlineOrderInput = z.infer<typeof onlineOrderSchema>;
 export type UserInput = z.infer<typeof userSchema>;
 export type UserUpdateInput = z.infer<typeof userUpdateSchema>;
 export type StockChangeInput = z.infer<typeof stockChangeSchema>;

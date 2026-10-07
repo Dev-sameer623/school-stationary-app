@@ -274,7 +274,7 @@ export async function exportCsv(resource: string) {
         order.couponCode ?? "",
         order.couponPercent,
         money(order.total),
-        order.createdBy.name,
+        order.createdBy?.name ?? "Online",
         order.status,
       ]),
     );
@@ -324,7 +324,7 @@ export async function exportCsv(resource: string) {
         row.previousStock,
         row.newStock,
         row.reason,
-        row.user.name,
+        row.user?.name ?? "Online shop",
       ]),
     );
   }

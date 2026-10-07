@@ -77,6 +77,7 @@ export default async function OrdersPage({
                 <th className="px-4 py-3">Items</th>
                 <th className="px-4 py-3">List total</th>
                 <th className="px-4 py-3">Amount due</th>
+                <th className="px-4 py-3">Source</th>
                 <th className="px-4 py-3">Status</th>
               </tr>
             </thead>
@@ -93,6 +94,7 @@ export default async function OrdersPage({
                   <td className="px-4 py-3">{order.items.reduce((sum, item) => sum + item.quantity, 0)}</td>
                   <td className="px-4 py-3">{formatInr(money(order.subtotal))}</td>
                   <td className="px-4 py-3">{formatInr(money(order.total))}</td>
+                  <td className="px-4 py-3">{order.source === "ONLINE" ? "Online" : "Counter"}</td>
                   <td className="px-4 py-3"><OrderBadge status={order.status} /></td>
                 </tr>
               ))}

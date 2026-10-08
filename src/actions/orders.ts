@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { authorize } from "@/lib/auth/guard";
 import { toErrorMessage } from "@/lib/errors";
-import { cancelOrder, completeOrder, createOrder } from "@/lib/services/orders";
+import { sendPackedEmail } from "@/lib/order-mail";
+import { cancelOrder, completeOrder, createOrder, markOrderReady } from "@/lib/services/orders";
 import type { ActionResult } from "@/types/action";
-import { fieldErrors, orderSchema } from "@/lib/validations";
+import { collectionSchema, fieldErrors, orderSchema } from "@/lib/validations";
 
 function refreshOrders() {
   revalidatePath("/orders");
@@ -14,6 +15,7 @@ function refreshOrders() {
   revalidatePath("/dashboard");
   revalidatePath("/reports");
   revalidatePath("/customers");
+  revalidatePath("/prepare");
 }
 
 export async function saveOrder(input: unknown): Promise<ActionResult<{ orderNumber: string }>> {
@@ -31,12 +33,31 @@ export async function saveOrder(input: unknown): Promise<ActionResult<{ orderNum
   }
 }
 
-export async function completeOrderAction(orderId: string): Promise<ActionResult> {
+export async function markReadyAction(orderId: string): Promise<ActionResult> {
   try {
     await authorize("ordersComplete");
-    await completeOrder(orderId);
+    const order = await markOrderReady(orderId);
+    if (order.source === "ONLINE") await sendPackedEmail(order);
     refreshOrders();
-    return { ok: true, message: "Order completed." };
+    revalidatePath("/prepare");
+    revalidatePath("/account/orders");
+    return { ok: true, message: `${order.orderNumber} is ready to collect.` };
+  } catch (error) {
+    return { ok: false, message: toErrorMessage(error) };
+  }
+}
+
+export async function completeOrderAction(orderId: string, paymentMethod: unknown): Promise<ActionResult> {
+  try {
+    const user = await authorize("ordersComplete");
+    const parsed = collectionSchema.safeParse({ paymentMethod });
+    if (!parsed.success) {
+      return { ok: false, message: "Choose cash or UPI." };
+    }
+    await completeOrder(orderId, user.id, parsed.data.paymentMethod);
+    refreshOrders();
+    revalidatePath("/prepare");
+    return { ok: true, message: "Payment recorded. Order collected." };
   } catch (error) {
     return { ok: false, message: toErrorMessage(error) };
   }
@@ -47,6 +68,7 @@ export async function cancelOrderAction(orderId: string): Promise<ActionResult> 
     const user = await authorize("ordersCancel");
     await cancelOrder(orderId, user.id);
     refreshOrders();
+    revalidatePath("/prepare");
     return { ok: true, message: "Order cancelled and stock restored." };
   } catch (error) {
     return { ok: false, message: toErrorMessage(error) };

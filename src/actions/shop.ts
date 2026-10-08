@@ -33,7 +33,14 @@ export async function placeOnlineOrder(input: unknown): Promise<ActionResult<{ o
     }
 
     const order = await createOnlineOrder(
-      { customerId: customer.id, couponCode: parsed.data.couponCode, items: parsed.data.items },
+      {
+        customerId: customer.id,
+        couponCode: parsed.data.couponCode,
+        items: parsed.data.items,
+        studentName: parsed.data.studentName,
+        studentClass: parsed.data.studentClass,
+        studentSection: parsed.data.studentSection,
+      },
       parsed.data.pickupNote,
     );
     const full = await getOrder(order.orderNumber);

@@ -47,6 +47,9 @@ export function OrderForm({
     defaultValues: {
       customerId: customers[0]?.id ?? "",
       couponCode: "",
+      studentName: "",
+      studentClass: "",
+      studentSection: "",
       items: [{ productId: products[0]?.id ?? "", productSizeId: "", quantity: 1 }],
     },
   });
@@ -108,6 +111,20 @@ export function OrderForm({
           ))}
         </Select>
         <FieldError message={form.formState.errors.customerId?.message} />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-1.5">
+          <Label htmlFor="studentName">Student name</Label>
+          <Input id="studentName" {...form.register("studentName")} placeholder="Optional" />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="studentClass">Class</Label>
+          <Input id="studentClass" {...form.register("studentClass")} placeholder="Optional" />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="studentSection">Section</Label>
+          <Input id="studentSection" {...form.register("studentSection")} placeholder="Optional" />
+        </div>
       </div>
       <div className="grid gap-3">
         {items.fields.map((field, index) => {

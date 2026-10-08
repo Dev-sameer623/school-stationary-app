@@ -29,8 +29,14 @@ enum ProductKind {
 
 enum OrderStatus {
   PENDING
+  READY
   COMPLETED
   CANCELLED
+}
+
+enum CollectionPayment {
+  CASH
+  UPI
 }
 
 enum StockTransactionType {
@@ -59,6 +65,7 @@ model User {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   orders            Order[]
+  collectedOrders   Order[]            @relation("CollectedBy")
   stockTransactions StockTransaction[]
 }
 
@@ -164,7 +171,14 @@ model Order {
   createdBy   User?       @relation(fields: [createdById], references: [id])
   source             OrderSource @default(COUNTER)
   pickupNote         String?
+  studentName        String?
+  studentClass       String?
+  studentSection     String?
   status             OrderStatus @default(PENDING)
+  paymentMethod      CollectionPayment?
+  collectedAt        DateTime?
+  collectedById      String?
+  collectedBy        User?               @relation("CollectedBy", fields: [collectedById], references: [id])
   subtotal           Decimal     @db.Decimal(12, 2)
   discountedSubtotal Decimal     @default(0) @db.Decimal(12, 2)
   couponId           String?
@@ -181,6 +195,7 @@ model Order {
   @@index([status])
   @@index([customerId])
   @@index([createdById])
+  @@index([collectedById])
 }
 
 model OrderItem {

@@ -65,6 +65,17 @@ export async function quoteCart(lines: CartLine[]) {
   });
 }
 
+export function remainingStock(product: {
+  kind: string;
+  stockQuantity: number;
+  sizes: Array<{ stockQuantity: number }>;
+}) {
+  if (product.kind === "UNIFORM" && product.sizes.length > 0) {
+    return product.sizes.reduce((sum, size) => sum + size.stockQuantity, 0);
+  }
+  return product.stockQuantity;
+}
+
 export function productFromPrice(product: {
   kind: string;
   price: { toString(): string } | number;

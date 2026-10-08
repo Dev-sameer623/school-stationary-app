@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
-import { cancelOrderAction, completeOrderAction } from "@/actions/orders";
+import { cancelOrderAction, markReadyAction } from "@/actions/orders";
+import { CollectionBill } from "@/components/orders/collection-bill";
+import { CollectOrder } from "@/components/orders/collect-order";
 import { ConfirmButton } from "@/components/confirm-button";
 import { PageHeader } from "@/components/page-header";
 import { PrintButton } from "@/components/print-button";
@@ -19,19 +21,25 @@ export default async function OrderDetailPage({
   const order = await getOrder(decodeURIComponent(orderNumber));
   if (!order) notFound();
 
+  const student = [order.studentName, order.studentClass, order.studentSection].filter(Boolean).join(" · ");
+  const canCollect = can(user.role, "ordersComplete") && (order.status === "PENDING" || order.status === "READY");
+
   return (
     <article className="print-sheet">
+      <div className="no-print">
       <PageHeader title={order.orderNumber} description={formatDateTime(order.createdAt)}>
-        <PrintButton label="Print order" />
+        <PrintButton label="Print bill" />
         {can(user.role, "ordersComplete") && order.status === "PENDING" ? (
           <ConfirmButton
-            label="Complete order"
-            title={`Complete ${order.orderNumber}?`}
-            description="Stock and the amount due will not change."
-            confirmLabel="Complete order"
-            onConfirm={completeOrderAction.bind(null, order.id)}
+            label="Mark ready"
+            title={`Mark ${order.orderNumber} ready?`}
+            description="Stock and the amount due will not change. The customer is told the order is packed."
+            confirmLabel="Mark ready"
+            tone="default"
+            onConfirm={markReadyAction.bind(null, order.id)}
           />
         ) : null}
+        {canCollect ? <CollectOrder orderId={order.id} orderNumber={order.orderNumber} /> : null}
         {can(user.role, "ordersCancel") && order.status !== "CANCELLED" ? (
           <ConfirmButton
             label="Cancel order"
@@ -46,7 +54,16 @@ export default async function OrderDetailPage({
         <p><span className="text-muted-foreground">Customer: </span>{order.customer.name}</p>
         <p><span className="text-muted-foreground">Created by: </span>{order.createdBy?.name ?? "Online shop"}</p>
         <p><span className="text-muted-foreground">Source: </span>{order.source === "ONLINE" ? "Online" : "Counter"}</p>
+        {student ? <p><span className="text-muted-foreground">Student: </span>{student}</p> : null}
         {order.pickupNote ? <p><span className="text-muted-foreground">Visit note: </span>{order.pickupNote}</p> : null}
+        {order.paymentMethod ? (
+          <p>
+            <span className="text-muted-foreground">Paid at the shop: </span>
+            {order.paymentMethod === "CASH" ? "Cash" : "UPI"}
+            {order.collectedAt ? ` · ${formatDateTime(order.collectedAt)}` : ""}
+            {order.collectedBy ? ` · ${order.collectedBy.name}` : ""}
+          </p>
+        ) : null}
         <OrderBadge status={order.status} />
       </div>
       <div className="overflow-x-auto rounded-xl border border-border bg-card">
@@ -91,6 +108,8 @@ export default async function OrderDetailPage({
         ) : null}
         <p className="flex justify-between font-semibold"><span>Amount due</span><span>{formatInr(money(order.total))}</span></p>
       </div>
+      </div>
+      <CollectionBill order={order} />
     </article>
   );
 }

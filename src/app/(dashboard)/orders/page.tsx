@@ -55,7 +55,8 @@ export default async function OrdersPage({
         <Select name="status" defaultValue={status} aria-label="Order status">
           <option value="ALL">All statuses</option>
           <option value="PENDING">Pending</option>
-          <option value="COMPLETED">Completed</option>
+          <option value="READY">Ready</option>
+          <option value="COMPLETED">Collected</option>
           <option value="CANCELLED">Cancelled</option>
         </Select>
       </UrlFilters>

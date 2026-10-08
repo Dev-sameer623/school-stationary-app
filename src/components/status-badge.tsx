@@ -6,9 +6,30 @@ export function StockBadge({ status }: { status: StockStatus }) {
   return <Badge tone={tone}>{stockStatusLabel(status)}</Badge>;
 }
 
-export function OrderBadge({ status }: { status: "PENDING" | "COMPLETED" | "CANCELLED" }) {
-  const tone = status === "COMPLETED" ? "green" : status === "PENDING" ? "amber" : "slate";
-  return <Badge tone={tone}>{status[0] + status.slice(1).toLowerCase()}</Badge>;
+type OrderState = "PENDING" | "READY" | "COMPLETED" | "CANCELLED";
+
+export function orderStatusLabel(status: OrderState, audience: "staff" | "customer" = "staff") {
+  if (audience === "customer") {
+    if (status === "PENDING") return "Placed";
+    if (status === "READY") return "Ready to collect";
+    if (status === "COMPLETED") return "Collected";
+    return "Cancelled";
+  }
+  if (status === "COMPLETED") return "Collected";
+  if (status === "READY") return "Ready";
+  if (status === "PENDING") return "Pending";
+  return "Cancelled";
+}
+
+export function OrderBadge({
+  status,
+  audience = "staff",
+}: {
+  status: OrderState;
+  audience?: "staff" | "customer";
+}) {
+  const tone = status === "COMPLETED" ? "green" : status === "READY" ? "blue" : status === "PENDING" ? "amber" : "slate";
+  return <Badge tone={tone}>{orderStatusLabel(status, audience)}</Badge>;
 }
 
 export function RoleBadge({ role }: { role: "ADMIN" | "MANAGER" }) {

@@ -51,4 +51,18 @@ body {
     box-shadow: none !important;
     border: none !important;
   }
+
+  .collection-bill {
+    display: block !important;
+  }
+
+  .collection-bill,
+  .collection-bill * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+.collection-bill {
+  display: none;
 }

@@ -60,6 +60,7 @@ export async function getOrder(orderNumber: string) {
     include: {
       customer: true,
       createdBy: { select: { name: true, role: true } },
+      collectedBy: { select: { name: true } },
       items: { include: { product: true } },
     },
   });
@@ -67,6 +68,11 @@ export async function getOrder(orderNumber: string) {
 
 function applyPercent(amount: Prisma.Decimal, percent: number) {
   return amount.mul(100 - percent).div(100).toDecimalPlaces(2);
+}
+
+function blank(value?: string | null) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
 }
 
 function mergeItems(items: OrderInput["items"]) {
@@ -213,6 +219,9 @@ async function createOrderRecord(
         createdById: actor.userId,
         source: actor.source,
         pickupNote: actor.pickupNote,
+        studentName: blank(input.studentName),
+        studentClass: blank(input.studentClass),
+        studentSection: blank(input.studentSection),
         status: "PENDING",
         subtotal: listTotal,
         discountedSubtotal,
@@ -352,14 +361,62 @@ export async function cancelOrder(orderId: string, userId: string) {
   });
 }
 
-export async function completeOrder(orderId: string) {
-  const order = await prisma.order.findUnique({ where: { id: orderId } });
+const prepareInclude = {
+  customer: true,
+  items: { include: { product: { select: { name: true } } } },
+} satisfies Prisma.OrderInclude;
+
+export async function listPrepareOrders() {
+  const cutoff = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+  const [pending, ready, waiting] = await Promise.all([
+    prisma.order.findMany({
+      where: { source: "ONLINE", status: "PENDING" },
+      include: prepareInclude,
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.order.findMany({
+      where: { status: "READY" },
+      include: prepareInclude,
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.order.findMany({
+      where: { status: { in: ["PENDING", "READY"] }, createdAt: { lt: cutoff } },
+      include: prepareInclude,
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
+  return { pending, ready, waiting };
+}
+
+export async function markOrderReady(orderId: string) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { customer: true, items: { include: { product: true } } },
+  });
   if (!order) throw new AppError("Order not found.");
   if (order.status !== "PENDING") {
-    throw new AppError("Only a pending order can be completed.");
+    throw new AppError("Only a pending order can be marked ready.");
   }
   return prisma.order.update({
     where: { id: order.id },
-    data: { status: "COMPLETED" },
+    data: { status: "READY" },
+    include: { customer: true, items: { include: { product: true } } },
+  });
+}
+
+export async function completeOrder(orderId: string, userId: string, paymentMethod: "CASH" | "UPI") {
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  if (!order) throw new AppError("Order not found.");
+  if (order.status !== "PENDING" && order.status !== "READY") {
+    throw new AppError("Only a pending or ready order can be collected.");
+  }
+  return prisma.order.update({
+    where: { id: order.id },
+    data: {
+      status: "COMPLETED",
+      paymentMethod,
+      collectedAt: new Date(),
+      collectedById: userId,
+    },
   });
 }

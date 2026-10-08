@@ -156,16 +156,28 @@ const orderItemList = z
   )
   .min(1, "Add at least one product.");
 
+const studentFields = {
+  studentName: z.string().trim().max(120).optional().or(z.literal("")),
+  studentClass: z.string().trim().max(40).optional().or(z.literal("")),
+  studentSection: z.string().trim().max(40).optional().or(z.literal("")),
+};
+
 export const orderSchema = z.object({
   customerId: z.string().uuid("Choose a customer."),
   couponCode: z.string().trim().max(40).optional().or(z.literal("")),
   items: orderItemList,
+  ...studentFields,
 });
 
 export const onlineOrderSchema = z.object({
   pickupNote: z.string().trim().max(300).optional().or(z.literal("")),
   couponCode: z.string().trim().max(40).optional().or(z.literal("")),
   items: orderItemList,
+  ...studentFields,
+});
+
+export const collectionSchema = z.object({
+  paymentMethod: z.enum(["CASH", "UPI"]),
 });
 
 export const passwordSchema = z

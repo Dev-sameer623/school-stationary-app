@@ -28,10 +28,18 @@ export default async function CustomerOrderPage({
       ) : null}
       <h1 className="font-serif text-4xl">{order.orderNumber}</h1>
       <div className="mt-3 flex items-center gap-3">
-        <OrderBadge status={order.status} />
+        <OrderBadge status={order.status} audience="customer" />
         <span className="text-sm text-muted-foreground">Amount due {formatInr(money(order.total))}</span>
       </div>
+      {[order.studentName, order.studentClass, order.studentSection].filter(Boolean).length > 0 ? (
+        <p className="mt-4 text-sm">
+          Student: {[order.studentName, order.studentClass, order.studentSection].filter(Boolean).join(" · ")}
+        </p>
+      ) : null}
       {order.pickupNote ? <p className="mt-4 text-sm">Visit note: {order.pickupNote}</p> : null}
+      {order.status === "COMPLETED" && order.paymentMethod ? (
+        <p className="mt-2 text-sm">Paid at the shop by {order.paymentMethod === "CASH" ? "cash" : "UPI"}.</p>
+      ) : null}
       <ul className="mt-6 divide-y divide-border rounded-2xl border border-border bg-card">
         {order.items.map((item) => (
           <li key={item.id} className="flex justify-between gap-3 px-4 py-3 text-sm">

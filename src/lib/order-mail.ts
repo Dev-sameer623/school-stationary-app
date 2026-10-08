@@ -5,6 +5,10 @@ import { shopConfig } from "@/lib/shop-config";
 type MailedOrder = {
   orderNumber: string;
   pickupNote: string | null;
+  studentName?: string | null;
+  studentClass?: string | null;
+  studentSection?: string | null;
+  source?: "COUNTER" | "ONLINE";
   total: { toString(): string } | number;
   customer: { name: string; email: string | null };
   items: Array<{
@@ -33,6 +37,17 @@ function escapeHtml(value: string) {
 function itemLabel(item: MailedOrder["items"][number]) {
   const size = item.sizeLabel ? ` (${item.sizeLabel})` : "";
   return `${item.product.name}${size} × ${item.quantity}`;
+}
+
+function studentText(order: MailedOrder) {
+  const parts = [order.studentName, order.studentClass, order.studentSection].filter((part): part is string => Boolean(part));
+  return parts.length > 0 ? parts.join(" · ") : "";
+}
+
+function studentHtml(order: MailedOrder) {
+  const text = studentText(order);
+  if (!text) return "";
+  return `<p style="margin:8px 0 0;font-family:Arial,sans-serif;font-size:13px;">Student: ${escapeHtml(text)}</p>`;
 }
 
 function assetSrc(file: string) {
@@ -97,6 +112,7 @@ function customerLetter(order: MailedOrder, shop: ReturnType<typeof shopConfig>,
       ${flourish("email-flourish-cream.jpg")}
       <h1 style="margin:2px 0 8px;font-size:24px;line-height:1.2;font-weight:bold;color:${ink};">Order Received</h1>
       <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;line-height:1.45;color:${ink};">Hello ${escapeHtml(order.customer.name)},<br>We received your order. The shop will prepare it before you arrive.</p>
+      ${studentHtml(order)}
     </td></tr>
     <tr><td style="padding:16px 28px 12px;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${gold};">
@@ -146,6 +162,7 @@ function shopLetter(order: MailedOrder, shop: ReturnType<typeof shopConfig>, amo
     </td></tr>
     <tr><td style="padding:16px 28px 6px;text-align:center;">
       <p style="margin:0;font-family:Arial,sans-serif;font-size:15px;">Customer: ${escapeHtml(order.customer.name)}</p>
+      ${studentHtml(order)}
       <p style="margin:6px 0 0;font-size:22px;line-height:1.2;font-weight:bold;">${escapeHtml(order.orderNumber)}</p>
     </td></tr>
     <tr><td style="padding:10px 28px 12px;">
@@ -172,8 +189,9 @@ export async function sendOrderEmails(order: MailedOrder) {
   const shop = shopConfig();
   const lines = order.items.map((item) => `- ${itemLabel(item)}: ${formatInr(money(item.total))}`).join("\n");
   const visit = order.pickupNote ? `Visit note: ${order.pickupNote}\n` : "";
+  const student = studentText(order);
   const amount = formatInr(money(order.total));
-  const shared = `${order.orderNumber}\n${lines}\nAmount due: ${amount}\n${visit}Pay when you collect the goods.`;
+  const shared = `${order.orderNumber}\n${student ? `Student: ${student}\n` : ""}${lines}\nAmount due: ${amount}\n${visit}Pay when you collect the goods.`;
 
   if (order.customer.email) {
     const text = `Hello ${order.customer.name},\n\nWe received your order. The shop will prepare it before you arrive.\n\n${shared}\n\n${shop.name}\n${shop.address}\n${shop.phone}`;
@@ -185,4 +203,23 @@ export async function sendOrderEmails(order: MailedOrder) {
     const text = `An online order is waiting to be prepared.\n\nCustomer: ${order.customer.name}\n${shared}\nPreparation required before customer arrival.\n\n${shop.name}\n${shop.address}\n${shop.phone}`;
     await sendMail(shopTo, `Prepare ${order.orderNumber} for ${order.customer.name}`, text, shopLetter(order, shop, amount));
   }
+}
+
+export async function sendPackedEmail(order: MailedOrder) {
+  if (!order.customer.email) return;
+  const shop = shopConfig();
+  const amount = formatInr(money(order.total));
+  const lines = order.items.map((item) => `- ${itemLabel(item)}: ${formatInr(money(item.total))}`).join("\n");
+  const student = studentText(order);
+  const visit = order.pickupNote ? `Visit note: ${order.pickupNote}\n` : "";
+  const text = `Hello ${order.customer.name},\n\nYour order is packed. Pay when you collect it.\n\n${order.orderNumber}\n${student ? `Student: ${student}\n` : ""}${lines}\nAmount due: ${amount}\n${visit}\n${shop.name}\n${shop.address}\n${shop.phone}`;
+  const html = customerLetter(
+    { ...order, pickupNote: order.pickupNote },
+    shop,
+    amount,
+  ).replace("Order Received", "Order Packed").replace(
+    "We received your order. The shop will prepare it before you arrive.",
+    "Your order is packed. Pay when you collect it.",
+  );
+  await sendMail(order.customer.email, `${shop.name}: ${order.orderNumber} is packed`, text, html);
 }

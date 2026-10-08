@@ -3,15 +3,15 @@ import { notFound } from "next/navigation";
 import { AddToCart } from "@/components/shop/add-to-cart";
 import { CatalogImage } from "@/components/catalog-image";
 import { getShopCustomer } from "@/lib/customer-auth/session";
-import { formatInr, stockStatus, stockStatusLabel } from "@/lib/format";
-import { displayPrice, getShopProduct } from "@/lib/services/shop";
+import { formatInr } from "@/lib/format";
+import { displayPrice, getShopProduct, remainingStock } from "@/lib/services/shop";
 
 export default async function ShopProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [product, customer] = await Promise.all([getShopProduct(id), getShopCustomer()]);
   if (!product) notFound();
   const price = displayPrice(product.price, product.discountPercent);
-  const status = stockStatus(product.stockQuantity, product.minimumStock);
+  const left = remainingStock(product);
 
   return (
     <div className="lg:grid lg:min-h-[calc(100svh-4.5rem)] lg:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.8fr)]">
@@ -33,9 +33,16 @@ export default async function ShopProductPage({ params }: { params: Promise<{ id
         ) : (
           <p className="mt-4 text-base text-muted-foreground">Choose a size. Each size has its own price.</p>
         )}
-        <p className="mt-3 inline-flex rounded-full bg-muted px-3 py-1 text-xs font-medium">
-          {product.kind === "STATIONERY" ? stockStatusLabel(status) : "Stock shown with each size"}
-        </p>
+        <p className="mt-3 text-sm font-medium">{left > 0 ? `${left} in stock` : "Out of stock"}</p>
+        {product.kind === "UNIFORM" ? (
+          <ul className="mt-3 grid gap-1 text-sm text-muted-foreground">
+            {product.sizes.map((size) => (
+              <li key={size.id}>
+                Size {size.size}: {size.stockQuantity > 0 ? `${size.stockQuantity} in stock` : "Out of stock"}
+              </li>
+            ))}
+          </ul>
+        ) : null}
         <div className="mt-8">
           <AddToCart
             signedIn={Boolean(customer)}

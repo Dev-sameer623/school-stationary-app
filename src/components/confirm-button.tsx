@@ -13,6 +13,7 @@ export function ConfirmButton({
   confirmLabel,
   onConfirm,
   redirectTo,
+  tone = "danger",
 }: {
   label: string;
   title: string;
@@ -20,6 +21,7 @@ export function ConfirmButton({
   confirmLabel: string;
   onConfirm: () => Promise<ActionResult>;
   redirectTo?: string;
+  tone?: "danger" | "default";
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -27,7 +29,7 @@ export function ConfirmButton({
 
   return (
     <>
-      <Button type="button" variant="destructive" size="sm" onClick={() => setOpen(true)}>
+      <Button type="button" variant={tone === "default" ? "default" : "destructive"} size="sm" onClick={() => setOpen(true)}>
         {label}
       </Button>
       {open ? (
@@ -43,7 +45,7 @@ export function ConfirmButton({
               </Button>
               <Button
                 type="button"
-                variant="destructive"
+                variant={tone === "default" ? "default" : "destructive"}
                 disabled={pending}
                 onClick={() => {
                   startTransition(async () => {

@@ -23,6 +23,9 @@ export function CheckoutForm({ customer }: { customer: { name: string; email: st
         const result = await placeOnlineOrder({
           pickupNote: form.get("pickupNote"),
           couponCode: form.get("couponCode"),
+          studentName: form.get("studentName"),
+          studentClass: form.get("studentClass"),
+          studentSection: form.get("studentSection"),
           items: readCart(),
         });
         setPending(false);
@@ -39,6 +42,23 @@ export function CheckoutForm({ customer }: { customer: { name: string; email: st
         <p className="font-medium">{customer.name}</p>
         <p className="text-muted-foreground">{customer.email}</p>
         <p className="text-muted-foreground">{customer.phone || "No phone on the account"}</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-1.5">
+          <Label htmlFor="studentName">Student name</Label>
+          <Input id="studentName" name="studentName" placeholder="Optional" />
+          <FieldError message={errors.studentName?.[0]} />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="studentClass">Class</Label>
+          <Input id="studentClass" name="studentClass" placeholder="Optional" />
+          <FieldError message={errors.studentClass?.[0]} />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="studentSection">Section</Label>
+          <Input id="studentSection" name="studentSection" placeholder="Optional" />
+          <FieldError message={errors.studentSection?.[0]} />
+        </div>
       </div>
       <div className="grid gap-1.5">
         <Label htmlFor="pickupNote">When will you visit?</Label>

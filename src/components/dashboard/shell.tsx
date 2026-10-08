@@ -6,6 +6,7 @@ import { useState } from "react";
 import {
   Boxes,
   ChartColumn,
+  ClipboardList,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -28,6 +29,7 @@ const links = [
   { href: "/categories", label: "Categories", icon: Tags, roles: ["ADMIN"] },
   { href: "/stock", label: "Stock", icon: Boxes, roles: ["ADMIN", "MANAGER"] },
   { href: "/orders", label: "Orders", icon: ShoppingCart, roles: ["ADMIN", "MANAGER"] },
+  { href: "/prepare", label: "To prepare", icon: ClipboardList, roles: ["ADMIN", "MANAGER"] },
   { href: "/coupons", label: "Coupons", icon: Ticket, roles: ["ADMIN", "MANAGER"] },
   { href: "/customers", label: "Customers", icon: Users, roles: ["ADMIN", "MANAGER"] },
   { href: "/reports", label: "Reports", icon: ChartColumn, roles: ["ADMIN", "MANAGER"] },

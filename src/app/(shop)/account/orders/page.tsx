@@ -25,7 +25,7 @@ export default async function MyOrdersPage() {
               </div>
               <div className="flex items-center gap-3">
                 <span>{formatInr(money(order.total))}</span>
-                <OrderBadge status={order.status} />
+                <OrderBadge status={order.status} audience="customer" />
               </div>
             </li>
           ))}
